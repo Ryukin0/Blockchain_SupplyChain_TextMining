@@ -1,0 +1,8 @@
+requests
+tqdm
+pandas
+openpyxl
+matplotlib
+jieba
+wordcloud
+pdfplumber
