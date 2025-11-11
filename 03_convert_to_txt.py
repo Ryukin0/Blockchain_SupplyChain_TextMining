@@ -7,7 +7,7 @@ from tqdm import tqdm
 # ======================
 YEAR = 2018
 BASE_DIR = "/Users/qqqqq/Desktop/ppppp/年报"
-PDF_DIR = os.path.join(BASE_DIR, f"年报PDF_{YEAR}")
+PDF_DIR = os.path.join(BASE_DIR, f"年报PDF_{YEAR}_有效")
 TXT_DIR = os.path.join(BASE_DIR, f"年报TXT_{YEAR}")
 os.makedirs(TXT_DIR, exist_ok=True)
 
