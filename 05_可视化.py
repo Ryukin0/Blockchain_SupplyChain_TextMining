@@ -13,11 +13,27 @@ TXT_DIR = os.path.join(BASE_DIR, f"年报TXT_{YEAR}")
 OUTPUT_DIR = os.path.join(BASE_DIR, f"分析结果_{YEAR}")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ========== 自定义关键词 ==========
-keywords = [
-    "区块链", "数字化", "数智化", "智能化", "人工智能",
-    "数据", "可信", "信任", "供应链", "信用", "透明", "追溯", "共享"
-]
+# ========== 自定义关键词体系 ==========
+keyword_groups = {
+    "区块链相关": [
+        "区块链", "分布式账本", "智能合约", "去中心化", "联盟链", "公有链", "私有链",
+        "上链", "链上", "链改", "链端", "链条数据", "加密存证", "电子存证",
+        "溯源系统", "数字凭证", "数据确权", "可信计算", "加密算法", "链上数据", "数据共享平台"
+    ],
+    "数字化转型": [
+        "数字化", "数智化", "信息化", "智能化", "大数据", "云计算", "人工智能", "物联网", "数字平台"
+    ],
+    "供应链治理": [
+        "供应链", "上游", "下游", "供应商", "物流", "协同", "链条", "溯源", "产业链", "链主企业"
+    ],
+    "信用与信任": [
+        "信用", "信任", "信誉", "合规", "透明", "可信", "信用体系", "信用管理", "风险控制", 
+        "验证", "共享", "安全"
+    ]
+}
+
+# 扁平化关键词列表
+keywords = [w for group in keyword_groups.values() for w in group]
 
 # ========== 读取并统计 ==========
 all_counts = Counter()
@@ -58,9 +74,11 @@ words = df["关键词"]
 freqs = df["原始计数"]
 
 plt.figure(figsize=(12, 7))
-bars = plt.bar(words, freqs, color="#4A90E2", edgecolor="black", alpha=0.85)
+# 如果关键词里含“链”，高亮为橙色，否则为蓝色
+colors = ["#E24A33" if "链" in w else "#4A90E2" for w in words]
+bars = plt.bar(words, freqs, color=colors, edgecolor="black", alpha=0.85)
 
-plt.title(f"企业年报高频词统计（{YEAR}年度）", fontsize=18, fontweight="bold", pad=20)
+plt.title(f"企业年报高频词统计（{YEAR}年度）\n区块链相关词汇高亮显示", fontsize=18, fontweight="bold", pad=20)
 plt.xlabel("关键词", fontsize=14)
 plt.ylabel("出现次数", fontsize=14)
 plt.xticks(rotation=45, ha='right', fontsize=12)
@@ -74,17 +92,57 @@ for bar in bars:
              ha='center', va='bottom', fontsize=10)
 
 plt.tight_layout()
-plt.savefig(os.path.join(OUTPUT_DIR, f"词频统计_{YEAR}_美化版.png"), dpi=300, bbox_inches='tight')
+plt.savefig(os.path.join(OUTPUT_DIR, f"词频统计_{YEAR}.png"), dpi=300, bbox_inches='tight')
 plt.show()
 
 # ========== 可视化2：词云 ==========
 wc = WordCloud(
     font_path="/System/Library/Fonts/STHeiti Medium.ttc",
     width=800, height=600,
-    background_color="white"
+    background_color="white",
+    colormap="viridis"
 )
 wc.generate_from_frequencies(all_counts)
 wc.to_file(os.path.join(OUTPUT_DIR, f"词云_{YEAR}.png"))
 
 print(f"✅ {YEAR} 年关键词分析完成！")
 print(f"📊 结果保存路径: {OUTPUT_DIR}")
+
+# ========== 可视化3：可信度指数分布 ==========
+trust_path = os.path.join(OUTPUT_DIR, f"数据可信度指数_{YEAR}.xlsx")
+
+if os.path.exists(trust_path):
+    trust_df = pd.read_excel(trust_path)
+
+    # 过滤异常值
+    trust_df = trust_df[trust_df["Trust_Index"] >= 0]
+    plt.figure(figsize=(10, 6))
+    plt.hist(trust_df["Trust_Index"], bins=30, color="#6EC6CA", edgecolor="black", alpha=0.8)
+    plt.title(f"{YEAR} 年企业年报“数据可信度指数”分布", fontsize=18, fontweight="bold", pad=20)
+    plt.xlabel("Trust_Index（可信度指数）", fontsize=14)
+    plt.ylabel("企业数量", fontsize=14)
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, f"可信度指数分布_{YEAR}.png"), dpi=300, bbox_inches='tight')
+    plt.show()
+
+    # ========== 可视化4：可信度前20企业 ==========
+    top20 = trust_df.sort_values(by="Trust_Index", ascending=False).head(20)
+    plt.figure(figsize=(12, 8))
+    bars = plt.barh(top20["公司简称"], top20["Trust_Index"], color="#FFB74D", alpha=0.85)
+    plt.gca().invert_yaxis()  # 让排名第一在最上方
+    plt.title(f"{YEAR} 年“可信度指数”最高的20家企业", fontsize=18, fontweight="bold", pad=20)
+    plt.xlabel("Trust_Index", fontsize=14)
+    plt.ylabel("公司简称", fontsize=14)
+    for bar in bars:
+        plt.text(bar.get_width() + 0.0005,
+                 bar.get_y() + bar.get_height()/2,
+                 f"{bar.get_width():.4f}",
+                 va='center', fontsize=10)
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, f"可信度前20企业_{YEAR}.png"), dpi=300, bbox_inches='tight')
+    plt.show()
+
+    print(f"✅ 可信度指数分布与Top20图已生成！")
+else:
+    print(f"⚠️ 未找到 {trust_path}，跳过可信度可视化。")
